@@ -1,0 +1,33 @@
+{
+  "name": "twowaybinding-ts",
+  "version": "1.0.0",
+  "description": "双向绑定  TyepScript版本",
+  "main": "index.js",
+  "scripts": {
+      "dev": "webpack-dev-server --hot-only",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuebin/TwoWayBinding-ts.git"
+  },
+  "keywords": [
+    "two",
+    "way",
+    "binding",
+    "Typescript"
+  ],
+  "author": "yuebin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yuebin/TwoWayBinding-ts/issues"
+  },
+  "homepage": "https://github.com/yuebin/TwoWayBinding-ts#readme",
+  "devDependencies": {
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.2",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0"
+  }
+}
