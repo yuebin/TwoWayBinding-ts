@@ -1,7 +1,10 @@
 const path = require('path');
 
 module.exports = {
-    entry: './src/index.ts',
+    entry:{
+      app: './src/index.ts',
+      lib:''
+    },
     devtool: 'inline-source-map',
     module: {
         rules: [
@@ -16,9 +19,14 @@ module.exports = {
             extensions: ['.tsx', '.ts', '.js']
         },
         output: {
-            filename: 'bundle.js',
+            filename: '[name].bundle.js',
                 path: path.resolve(__dirname, 'dist')
         },
+optimization:{
+splitChunks:{
+ chunks:'async'
+}
+}, 
         devServer: {
             contentBase: path.join(__dirname, 'dist'),
             compress: true,
