@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = {
     entry:{
       app: './src/index.ts',
-      lib:''
+      lib:'./src/uad/index.ts'
     },
     devtool: 'inline-source-map',
     module: {
@@ -22,11 +22,11 @@ module.exports = {
             filename: '[name].bundle.js',
                 path: path.resolve(__dirname, 'dist')
         },
-optimization:{
-splitChunks:{
- chunks:'async'
-}
-}, 
+        optimization:{
+                splitChunks:{
+                chunks:'async'
+                }
+        }, 
         devServer: {
             contentBase: path.join(__dirname, 'dist'),
             compress: true,

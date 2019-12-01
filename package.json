@@ -4,7 +4,7 @@
   "description": "双向绑定  TyepScript版本",
   "main": "index.js",
   "scripts": {
-      "dev": "webpack-dev-server --hot-only",
+    "dev": "webpack-dev-server --hot-only",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
