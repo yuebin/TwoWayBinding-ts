@@ -1,4 +1,4 @@
-import { UID, IDirective} from '../index';
+import { UID, IDirective, EventAgent, Component} from '../index';
 
 class VNode{
     
@@ -33,14 +33,27 @@ class VNode{
         return document.createElement(this.tag);
     }
 
-    public render(): void{
-        let el:HTMLElement = null;
+    public init(_component: Component): void{
         let attr:any = {};
         let attrFlag = false;
         let attrValueFlag = false;
+        console.error(this._token);
 
         for(let i = 0; i < this._token.length;i++){
             let token = this._token[i];
+            
+            if (token.type === "event"){
+                let exporess = Object.create(null);
+                exporess.key = token;
+                exporess.value = this._token[i + 3];
+                EventAgent.getEventAgent().addVNodeEvent(this, exporess, _component);
+            }
+            if (token.directive){
+                let exporess = Object.create(null);
+                exporess.key = token;
+                exporess.value = this._token[i + 3];
+                
+            }
             if (token.type === "tag") {
                 this.tag = token.name;
             }
@@ -66,12 +79,12 @@ class VNode{
                 }
                 attr.value.push(token.value);
             }
-            
-            if (this.children) {
-                this.children.forEach((vnode: VNode) => {
-                    vnode.render();
-                });
-            }
+        }
+
+        if (this.children && this.children.length > 0) {
+            this.children.forEach((vnode: VNode) => {
+                vnode.init(_component);
+            });
         }
     }
 }

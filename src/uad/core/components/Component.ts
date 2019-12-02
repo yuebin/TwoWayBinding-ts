@@ -1,8 +1,9 @@
 import VNode from "../../vnode/VNode";
-import { Lexer, PROT_STATE_METADATA, Watcher, PROT_METHOD_METADATA, EventAgent } from "../../index";
+import { Lexer, PROT_STATE_METADATA, Watcher, PROT_METHOD_METADATA, EventAgent, Message, PROT_WATCHER_METADATA, watch } from "../../index";
+import { MessageType } from "../../watcher/Message";
 
 
-const HTML_TAG_REG = /(<\/?\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[0-9])*\"?)*>)|(<\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[0-9])*\"?)*\s*\/?>)/g;
+const HTML_TAG_REG = /(<\/?\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[-.]|[0-9])*\"?)*>)|(<\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[-.]|[0-9])*\"?)*\s*\/?>)/g;
 /**
  * 元素5大规范：
  * 1，高内聚: 
@@ -13,7 +14,6 @@ const HTML_TAG_REG = /(<\/?\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[0-
  */
 class Component{
     
-
     private template:string;
     private templateUrl:string;
     private selector:string;
@@ -53,12 +53,13 @@ class Component{
                 let innerText = "";
                 let startIndex = regIndex + match.length;
                 if (startIndex > (index + 1)){
-                    let nextIndex = args[9].substring(regIndex + match.length).search(/<\w+\/?>/g);
+                    let nextIndex = args[9].substring(regIndex + match.length).search(/<\w+\s*\/?>/g);
                     if (nextIndex > -1){
                         innerText = args[9].substring(startIndex, startIndex + nextIndex);
                         index = startIndex;
                     }
                 }
+                
                 let lexer:Lexer = new Lexer();
                 let tempToken: Array<any> = lexer.lex(match);
                 if (!token && match){
@@ -76,10 +77,13 @@ class Component{
                         }
                     }
                 }
-
                 return "";
             });
         }
+    }
+
+    public getVNode(): VNode {
+        return this.vnode;
     }
 
     /**
@@ -88,19 +92,31 @@ class Component{
      */
     initComponent(target:any): any {
         this.ctor = new target();
+        this.initVNode(this);
         this.initState(target);
+    }
 
+    private initVNode(_component:Component):void{
+        this.vnode.init(_component);
     }
 
     private initState(target:any):void{
         if (target && target.__proto__ && target.__proto__[PROT_STATE_METADATA]) {
             for (let p in target.__proto__[PROT_STATE_METADATA]) {
                 if ((this.ctor as any)[p]) {
-                    (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler());
+                    (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler(this,p));
                 } else {
-                    (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler());
+                    (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler(this,p));
                 }
             }
+        }
+    }
+
+    public dispatcherEvent(express:any,event:Event):void{
+        let methodName = express.value.value;
+        let options = (this.ctor as any).__proto__.constructor.__proto__[PROT_METHOD_METADATA][methodName];
+        if (options && options.func) {
+            (this.ctor as any).__proto__[options.func].apply(this.ctor, [event]);
         }
     }
 
@@ -115,15 +131,19 @@ class Component{
     bindData(vNode:VNode):string{
         if(vNode.txt){
              return vNode.txt.replace(/(\{\{([a-z]|[.]|[A-Z]|[$_])+\}\})+/g,(match:string)=>{
-                let key = match.replace(/(\{|\{|\}|\})+/g,"");
+                let keys = match.replace(/(\{||\})+/g,"");
                 let result = "";
                 let state = (this.ctor as any).__proto__.constructor.__proto__[PROT_STATE_METADATA];
                 for(let p in state){
-                    let dataState: any = (this.ctor as any)[p];
-                    result = this.getValueByObj(dataState, key);
-                    if (result){
-                        return result;
-                    }
+                    let keyArray = keys.split(".");
+                    keyArray.forEach((key)=>{
+                        if(key === p){
+                            result = this.getValueByObj((this.ctor as any), keys);
+                            if (result) {
+                                return result;
+                            }
+                        }
+                    });
                 }
                 return result;
             });
@@ -149,12 +169,12 @@ class Component{
 
     render(parent?:HTMLElementEventMap):void{
         //this.bindData(this.vnode);
-        this.vnode.render();
+        //this.vnode.render();
         this.el = this.buildElement(this.vnode);
 
         if (this.vnode.children) {
             this.vnode.children.forEach((childVnode:VNode)=>{
-                childVnode.render();
+                //childVnode.render();
                 this.el.appendChild(this.buildElement(childVnode));
             });
         }
@@ -191,7 +211,8 @@ class Component{
         if (target && target.__proto__ && target.__proto__[PROT_METHOD_METADATA]) {
             for (let p in target.__proto__[PROT_METHOD_METADATA]) {
                 let methodName = p;
-                let eventMethodName = (this.ctor as any)[p].options;
+                let value = target.__proto__[PROT_METHOD_METADATA][p];
+                let eventMethodName = value.func;
                 if (!eventMethodName){
                     eventMethodName = methodName;
                 }
@@ -199,7 +220,13 @@ class Component{
                 EventAgent.getEventAgent().addEvent(`${this.name}.${eventMethodName}`,this);
             }
         }
+        
+        this.vnode._token.forEach((token)=>{
+
+        });
     }
+
+
 
 
     dispatchEvent(event:Event):void{
@@ -229,6 +256,24 @@ class Component{
             });
         }
         return result;
+    }
+
+
+
+    public execWatcher(message: Message): any {
+        if(message.type === MessageType.WATCHER){
+            this.execWatcherExpress(message);
+            this.render();
+        }
+    }
+
+    private execWatcherExpress(message: Message):void{
+        let stateName = message.message.stateName;
+        let stateKey = message.message.changeKey;
+        let watcherKey = `${stateName}.${stateKey}`;
+        let methodName = (this.ctor as any).__proto__.constructor.__proto__[PROT_WATCHER_METADATA][watcherKey].func;
+        (this.ctor as any).__proto__[methodName].apply(this.ctor, [message.message.value]);
+        
     }
 
 }

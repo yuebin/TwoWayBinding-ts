@@ -1,14 +1,17 @@
 import { Component } from "./Component";
+import { EventType } from "../../index";
+import VNode from "../../vnode/VNode";
 
 /**
  * 组件管理类，
  * 用于管理系统中组件，系统中需要使用的组件都要在此进行管理。
  */
 class ComponentManager{
-
+    
     private static instance: ComponentManager;
 
     private readonly componentMap: Map<string, Component> = new Map<string, Component>();
+    private readonly componentVnodeMap: Map<string, Component> = new Map<string, Component>();
 
     private constructor(){
         if (ComponentManager.instance){
@@ -22,6 +25,24 @@ class ComponentManager{
         }else{
             this.componentMap.set(_component.name,_component);
         }
+    }
+
+
+    _registerVNode(vNode: VNode, _component: Component): any {
+        if (vNode.children && vNode.children.length > 0) {
+            vNode.children.forEach((cVNode:VNode)=>{
+                this.componentVnodeMap.set(`${cVNode.id}`, _component);
+                if (cVNode.children && cVNode.children.length > 0){
+                    this._registerVNode(cVNode, _component);
+                }
+            });
+        }
+    }
+
+    registerVNode(_component: Component):void{
+        let vNode: VNode = _component.getVNode();
+        this.componentVnodeMap.set(`${vNode.id}`, _component);
+        this._registerVNode(vNode, _component);
     }
 
 

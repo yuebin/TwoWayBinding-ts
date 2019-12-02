@@ -2,6 +2,7 @@ import { CompoentFactory, ComponentManager } from "../index";
 
 const PROT_STATE_METADATA = "__prot_state_metadata__";
 const PROT_METHOD_METADATA = "__prot_method_metadata__";
+const PROT_WATCHER_METADATA = "__prot_watcher_metadata__";
 
 
 function component(options: any): Function {
@@ -45,12 +46,38 @@ function state(options?: any): Function {
 }
 
 function method(options?: any): Function {
-
+    let methodName = "";
+    if (typeof options === 'string') {
+        methodName = options;
+    } else if (options && options.name) {
+        methodName = options.name;
+    } else {
+        throw new Error("method名称不能为空");
+    }
     return function (target: any, name: string, descriptor: any) {
         if (!target.constructor.__proto__[PROT_METHOD_METADATA]) {
             target.constructor.__proto__[PROT_METHOD_METADATA] = {};
         }
-        target.constructor.__proto__[PROT_METHOD_METADATA][name] = { type: 'method', options: options ? options : null };
+        target.constructor.__proto__[PROT_METHOD_METADATA][methodName] = {func:name, type: 'method', options: options ? options : null };
+        return target;
+    }
+}
+
+
+function watch(options:any):Function{
+    let watcherStateName = "";
+    if (typeof options === 'string'){
+        watcherStateName = options;
+    } else if (options && options.name){
+        watcherStateName = options.name;
+    }else{
+        throw new Error("Watcher名称不能为空");
+    }
+    return function (target: any, name: string, descriptor: any) {
+        if (!target.constructor.__proto__[PROT_WATCHER_METADATA]) {
+            target.constructor.__proto__[PROT_WATCHER_METADATA] = {};
+        }
+        target.constructor.__proto__[PROT_WATCHER_METADATA][watcherStateName] = { func:name,type: 'watch', options: options ? options : null };
         return target;
     }
 }
@@ -59,6 +86,8 @@ export {
     component,
     state,
     method,
+    watch,
     PROT_STATE_METADATA,
-    PROT_METHOD_METADATA
+    PROT_METHOD_METADATA,
+    PROT_WATCHER_METADATA
 }

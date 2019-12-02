@@ -65,6 +65,8 @@ class Lexer{
                 }
             } else if (this.isNumber(ch) || ch === '.' && this.isNumber(this.peek())) {
                 this.readNumber();
+            } else if (this.is(ch,'u') && this.peek() === "-") {
+                this.readDirective(ch);
             } else if (this.isIdentifierStart(this.peekMultichar())) {
                 this.readIdent();
             } else if (this.is(ch, '<') && this.peek() === "/"){
@@ -165,6 +167,25 @@ class Lexer{
             type: 'event',
             name: this.text.slice(start + 1, this.index)
         });
+    }
+
+    readDirective(ch:string):void{
+        let start = this.index;
+        this.index += this.peekMultichar().length;
+        while (this.index < this.text.length) {
+            let ch = this.peekMultichar();
+            if (!this.isIdentifierContinue(ch)) {
+                break;
+            }
+            this.index += ch.length;
+        }
+        this.tokens.push({
+            index: start,
+            text: this.text.slice(start, this.index),
+            name: this.text.slice(start+2,this.index),
+            directive: true
+        });
+
     }
 
     isHtmlTag(ch:string):boolean{

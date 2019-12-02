@@ -1,9 +1,16 @@
-import { Component, component } from "../../index";
+import { Component, ComponentManager } from "../../index";
+import VNode from "../../vnode/VNode";
+
+enum EventType{
+    CLICK = "click",
+    INPUT = "input"
+}
 
 class EventAgent{
     
     private static instace:EventAgent;
     private eventMap:Map<string,any>;
+    private eventVNodeComponentMap: Map<string, any>;
 
 
     private constructor(){
@@ -11,9 +18,28 @@ class EventAgent{
             throw Error("请使用getEventAgent获取其实例！");
         }
         this.eventMap = new Map<string,any>();
+        this.eventVNodeComponentMap = new Map<string, any>();
         document.addEventListener('input',(event:any)=>{
-            console.error(event);
+            this.dispatcher(EventType.INPUT,event);
         });
+        document.addEventListener('click', (event: any) => {
+            this.dispatcher(EventType.CLICK, event);
+        });
+    }
+
+    dispatcher(type:EventType,event:Event){
+        // ComponentManager.getComponentManager().dispatcher(type,event);
+        let id = (event.target as any).dataset.vnodeId;
+        let key = `${id}_${type}`;
+        
+        if (this.eventVNodeComponentMap.has(key)){
+            let eventValue = this.eventVNodeComponentMap.get(key);
+            eventValue.comp.dispatcherEvent(eventValue.exporess,event);
+        }
+    }
+
+    addVNodeEvent(vnode: VNode, exporess: any, _component: Component): any {
+        this.eventVNodeComponentMap.set(`${vnode.id}_${exporess.key.name}`, { comp: _component, vnode: vnode, exporess: exporess});
     }
 
 
@@ -32,5 +58,6 @@ class EventAgent{
 }
 
 export {
-    EventAgent
+    EventAgent,
+    EventType
 }
