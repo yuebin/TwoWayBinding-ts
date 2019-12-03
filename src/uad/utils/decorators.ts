@@ -1,9 +1,8 @@
-import { CompoentFactory, ComponentManager } from "../index";
+import { CompoentFactory, ComponentManager, DirectiveManager } from "../index";
 
 const PROT_STATE_METADATA = "__prot_state_metadata__";
 const PROT_METHOD_METADATA = "__prot_method_metadata__";
 const PROT_WATCHER_METADATA = "__prot_watcher_metadata__";
-
 
 function component(options: any): Function {
 
@@ -34,7 +33,7 @@ function component(options: any): Function {
 }
 
 
-function state(options?: any): Function {
+function model(options?: any): Function {
 
     return function (target: any, name: string, descriptor: any) {
         if (!target.constructor.__proto__[PROT_STATE_METADATA]){
@@ -82,11 +81,27 @@ function watch(options:any):Function{
     }
 }
 
+function directive(options?:any):Function{
+    let directiveName = "";
+    if (typeof options === 'string') {
+        directiveName = options;
+    } else if (options && options.name) {
+        directiveName = options.name;
+    } else {
+        throw new Error("Watcher名称不能为空");
+    }
+    return function (target: any, name: string, descriptor: any) {
+        DirectiveManager.getDirectiveManager().registerDirective(directiveName,target);
+        return target;
+    }
+}
+
 export {
     component,
-    state,
+    model,
     method,
     watch,
+    directive,
     PROT_STATE_METADATA,
     PROT_METHOD_METADATA,
     PROT_WATCHER_METADATA

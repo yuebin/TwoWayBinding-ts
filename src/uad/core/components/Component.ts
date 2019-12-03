@@ -1,9 +1,10 @@
 import VNode from "../../vnode/VNode";
-import { Lexer, PROT_STATE_METADATA, Watcher, PROT_METHOD_METADATA, EventAgent, Message, PROT_WATCHER_METADATA, watch } from "../../index";
+import { Lexer, PROT_STATE_METADATA, Watcher, PROT_METHOD_METADATA, EventAgent, Message, PROT_WATCHER_METADATA, watch, DirectiveManager, Util, IDirective, EventType } from "../../index";
 import { MessageType } from "../../watcher/Message";
 
 
 const HTML_TAG_REG = /(<\/?\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[-.]|[0-9])*\"?)*>)|(<\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[-.]|[0-9])*\"?)*\s*\/?>)/g;
+const IDENTITY_REG = /([a-z]|[A-Z]|[_$.])*/g;
 /**
  * 元素5大规范：
  * 1，高内聚: 
@@ -17,11 +18,15 @@ class Component{
     private template:string;
     private templateUrl:string;
     private selector:string;
-    private ctor:Function;
+    public ctor:Function;
     private vnode:VNode;
     private slot:Array<Component>;
     private _name:string;
     private el:HTMLElement;
+    private directives:Map<VNode,IDirective>;
+    private events: Map<VNode, any>;
+    private watcher:Watcher;
+    private module:any;
     private handlder: any = {
         get: function (target: any, key: string, receiver: any) {
             return Reflect.get(target, key, receiver);
@@ -39,6 +44,10 @@ class Component{
             options.templateUrl && (this.templateUrl = options.templateUrl);
             options.el && (this.selector = options.el);
         }
+
+        this.directives = new Map<VNode, IDirective>();
+        this.events = new Map<VNode, any>();
+        this.module = Object.create(null);
     }
 
 
@@ -64,12 +73,12 @@ class Component{
                 let tempToken: Array<any> = lexer.lex(match);
                 if (!token && match){
                     token = tempToken;
-                    this.vnode = new VNode()
+                    this.vnode = new VNode(this)
                     this.vnode.token = token;
                     this.vnode.txt = innerText;
                 }else{
                     if(match){
-                        let vNode: VNode = new VNode();
+                        let vNode: VNode = new VNode(this);
                         vNode.token = tempToken;
                         vNode.txt = innerText;
                         if (tempToken && tempToken.length > 0){
@@ -80,6 +89,8 @@ class Component{
                 return "";
             });
         }
+
+        this.vnode.parse();
     }
 
     public getVNode(): VNode {
@@ -94,6 +105,40 @@ class Component{
         this.ctor = new target();
         this.initVNode(this);
         this.initState(target);
+        this.initDirective();
+        this.initEvent();
+    }
+
+    initDirective():void{
+        //找到对应的指令，执行其bind方法
+        // let directive: IDirective = DirectiveManager.getDirectiveManager().findDirective(exporess);
+        // directive.init(this.el, this);
+        if (!Util.isEmpty(this.directives)){
+            for(let key of this.directives.keys()){
+                let directive = this.directives.get(key);
+                let exporess = (directive as any).__proto__['exproess'];
+                let value = this.executeExproess(exporess);
+                (directive as any).init(key, {
+                    express: exporess,
+                    value:value
+                });
+            }
+        }
+    }
+
+
+    private executeExproess(exporess:any):any{
+        if (exporess.key.directive){ //如果是指令，后面为求值表达
+            let expressStr = exporess.value.value;
+            return this.getValueExproess(expressStr);
+        }
+        return null;
+    }
+
+    private getValueExproess(express:string):any{
+        if (IDENTITY_REG.test(express)){
+            return this.getModuleData(express);
+        }
     }
 
     private initVNode(_component:Component):void{
@@ -104,20 +149,40 @@ class Component{
         if (target && target.__proto__ && target.__proto__[PROT_STATE_METADATA]) {
             for (let p in target.__proto__[PROT_STATE_METADATA]) {
                 if ((this.ctor as any)[p]) {
-                    (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler(this,p));
+                    this.module[p] = (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler(this,p));
                 } else {
-                    (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler(this,p));
+                    this.module[p] = (this.ctor as any)[p] = new Proxy((this.ctor as any)[p], Watcher.getWatcher().getWatcherHandler(this,p));
                 }
             }
         }
     }
 
     public dispatcherEvent(express:any,event:Event):void{
-        let methodName = express.value.value;
-        let options = (this.ctor as any).__proto__.constructor.__proto__[PROT_METHOD_METADATA][methodName];
-        if (options && options.func) {
-            (this.ctor as any).__proto__[options.func].apply(this.ctor, [event]);
+        if (express instanceof Function){
+            express.apply(this.ctor, [event]);
+        }else{
+            let methodName = express.value.value;
+            let options = (this.ctor as any).__proto__.constructor.__proto__[PROT_METHOD_METADATA][methodName];
+            if (options && options.func) {
+                (this.ctor as any).__proto__[options.func].apply(this.ctor, [event]);
+            }
         }
+    }
+
+
+    public getModuleData(express:any):any{
+        let result = null;
+        if (typeof express === "string" && express.length > 0){
+            let keys = express.split(".");
+            if (this.module[keys[0]]){
+                let tempObject = this.module[keys[0]];
+                for(let i = 1; i < keys.length; i++){
+                    tempObject = tempObject[keys[i]];
+                }
+                result = tempObject;
+            }
+        }
+        return result;
     }
 
     /**
@@ -125,31 +190,6 @@ class Component{
      */
     initLifeCycle(): any {
         this.render();
-    }
-
-
-    bindData(vNode:VNode):string{
-        if(vNode.txt){
-             return vNode.txt.replace(/(\{\{([a-z]|[.]|[A-Z]|[$_])+\}\})+/g,(match:string)=>{
-                let keys = match.replace(/(\{||\})+/g,"");
-                let result = "";
-                let state = (this.ctor as any).__proto__.constructor.__proto__[PROT_STATE_METADATA];
-                for(let p in state){
-                    let keyArray = keys.split(".");
-                    keyArray.forEach((key)=>{
-                        if(key === p){
-                            result = this.getValueByObj((this.ctor as any), keys);
-                            if (result) {
-                                return result;
-                            }
-                        }
-                    });
-                }
-                return result;
-            });
-        }else{
-            return "";
-        }
     }
 
     getValueByObj(obj:any,key:string):any{
@@ -170,49 +210,29 @@ class Component{
     render(parent?:HTMLElementEventMap):void{
         //this.bindData(this.vnode);
         //this.vnode.render();
-        this.el = this.buildElement(this.vnode);
+        this.el = this.vnode.render();
          //调用指令的render方法
-
-        if (this.vnode.children) {
-            this.vnode.children.forEach((childVnode:VNode)=>{
-                //childVnode.render();
-                this.el.appendChild(this.buildElement(childVnode));
-                //调用指令的render方法
-                 
-            });
-        }
-
         this.update();
     }
 
-    buildElement(vNode:VNode):HTMLElement{
-        let el = vNode.getElement();//document.createElement(this.vnode.tag);
-
-        vNode.attrs.forEach((attr) => {
-            el.setAttribute(attr.name, this.getArrayAttrValue(attr.value))
-        });
-
-        el.setAttribute('data-vnode-id', `${vNode.id}`);
-        if(vNode.txt){
-            
-            el.innerText = this.bindData(this.vnode);
-        }
-        return el;
-    }
-    
 
     update():void{
-        增加质量的update方法
+        //增加指令的update方法
         if(this.selector){
+            this.vnode.saveVNodeState();
             document.querySelector(this.selector).innerHTML = "";
             document.querySelector(this.selector).appendChild(this.el);
+            this.vnode.resetVNodeState();
         }
     }
+
     
     /**
      * 初始化事件
      */
     initEvent(target?:any): any {
+
+        //1,初始化VM上的注解方法
         if (target && target.__proto__ && target.__proto__[PROT_METHOD_METADATA]) {
             for (let p in target.__proto__[PROT_METHOD_METADATA]) {
                 let methodName = p;
@@ -225,13 +245,56 @@ class Component{
                 EventAgent.getEventAgent().addEvent(`${this.name}.${eventMethodName}`,this);
             }
         }
-        
-        this.vnode._token.forEach((token)=>{
 
-        });
+        //2，初始化模板中的事件
+        if (!Util.isEmpty(this.events)) {
+            for (let key of this.events.keys()) {
+                let express = this.events.get(key);
+                let methodName = (express as any).value.value;
+                EventAgent.getEventAgent().addVNodeEvent((express.key.name as EventType), key, this.getMethod(methodName),this);
+            }
+        }
+        
     }
 
 
+    public getMethod(methodName:string):Function{
+        if ((this.ctor as any).__proto__.hasOwnProperty(methodName)){
+            return (this.ctor as any).__proto__[methodName];
+        }else{
+            //PROT_METHOD_METADATA
+            return this.getMetaDataMethod(methodName);
+        }
+    }
+
+    public getMetaDataMethod(methodName: string): Function{
+        let methodAsName = this.getMetaData(PROT_METHOD_METADATA);
+        if ((this.ctor as any).__proto__.hasOwnProperty(methodAsName[methodName].func)) {
+            return (this.ctor as any).__proto__[methodAsName[methodName].func];
+        }
+        return null;
+    }
+
+
+    public getMetaData(protMetData:string):any{
+        if ((this.ctor as any) 
+            && (this.ctor as any).__proto__.constructor.__proto__
+            && (this.ctor as any).__proto__.constructor.__proto__.hasOwnProperty(protMetData)){
+            return (this.ctor as any).__proto__.constructor.__proto__[protMetData];
+        }
+        return null;
+    }
+
+    public updateModule(newValue: string, expression: any): any {
+        if (expression && IDENTITY_REG.test(expression)){ //变量表达式
+            let keys = expression.split(".");
+            let templateObj = this.module[keys[0]];
+            for (let i = 1; i < (keys.length - 1 ); i++){
+                templateObj = templateObj[keys[i]];
+            }
+            templateObj[keys[keys.length - 1]] = newValue;
+        }
+    }
 
 
     dispatchEvent(event:Event):void{
@@ -276,9 +339,22 @@ class Component{
         let stateName = message.message.stateName;
         let stateKey = message.message.changeKey;
         let watcherKey = `${stateName}.${stateKey}`;
-        let methodName = (this.ctor as any).__proto__.constructor.__proto__[PROT_WATCHER_METADATA][watcherKey].func;
-        (this.ctor as any).__proto__[methodName].apply(this.ctor, [message.message.value]);
-        
+        let propt = (this.ctor as any).__proto__.constructor.__proto__[PROT_WATCHER_METADATA][watcherKey];
+        if (propt && propt.func){
+            let methodName = propt.func;
+            (this.ctor as any).__proto__[methodName].apply(this.ctor, [message.message.value]);
+        }
+    }
+
+
+    public addDirective(vnode:VNode,exporess: any): any {
+        let directive = DirectiveManager.getDirectiveManager().findDirective(exporess.key.text);
+        (directive as any).__proto__['exproess'] = exporess;
+        this.directives.set(vnode,directive);
+    }
+
+    public addEvent(vnode:VNode,eventExpress: any): any {
+        this.events.set(vnode, eventExpress);
     }
 
 }

@@ -19,15 +19,20 @@ class EventAgent{
         }
         this.eventMap = new Map<string,any>();
         this.eventVNodeComponentMap = new Map<string, any>();
-        document.addEventListener('input',(event:any)=>{
-            this.dispatcher(EventType.INPUT,event);
-        });
+        
+    }
+
+
+    public initEvent(): any {
+        document.addEventListener('input', (event: any) => {
+            this.dispatcher(EventType.INPUT, event);
+        },true);
         document.addEventListener('click', (event: any) => {
             this.dispatcher(EventType.CLICK, event);
         });
     }
 
-    dispatcher(type:EventType,event:Event){
+    public dispatcher(type:EventType,event:Event){
         // ComponentManager.getComponentManager().dispatcher(type,event);
         let id = (event.target as any).dataset.vnodeId;
         let key = `${id}_${type}`;
@@ -38,8 +43,8 @@ class EventAgent{
         }
     }
 
-    addVNodeEvent(vnode: VNode, exporess: any, _component: Component): any {
-        this.eventVNodeComponentMap.set(`${vnode.id}_${exporess.key.name}`, { comp: _component, vnode: vnode, exporess: exporess});
+    public addVNodeEvent(eventType:EventType|string,vnode: VNode, exporess: any, _component: Component): any {
+        this.eventVNodeComponentMap.set(`${vnode.id}_${eventType}`, { comp: _component, vnode: vnode, exporess: exporess});
     }
 
 

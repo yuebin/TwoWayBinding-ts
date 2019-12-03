@@ -1,4 +1,5 @@
-import { component, state, method, watch} from "./uad/index";
+import { component, model, method, watch} from "./uad/index";
+import UAD from "./uad/core/UAD";
 
 
 @component({
@@ -19,13 +20,13 @@ class App{
         }, 5000);
     }
 
-    @state()
+    @model()
     state:any = {
         date:new Date().getTime(),
         state:{
             value:"State.Value"
         },
-        value:""
+        value:"初始化值"
     }
 
 
@@ -41,3 +42,5 @@ class App{
         console.error(`dateChange:${newValue}`);
     }
 }
+
+UAD.bootstartup();
