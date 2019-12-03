@@ -52,6 +52,7 @@ class VNode{
                 let exporess = Object.create(null);
                 exporess.key = token;
                 exporess.value = this._token[i + 3];
+                //找到对应的指令，执行其bind方法
                 
             }
             if (token.type === "tag") {
