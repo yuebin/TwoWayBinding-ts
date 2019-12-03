@@ -171,11 +171,14 @@ class Component{
         //this.bindData(this.vnode);
         //this.vnode.render();
         this.el = this.buildElement(this.vnode);
+         //调用指令的render方法
 
         if (this.vnode.children) {
             this.vnode.children.forEach((childVnode:VNode)=>{
                 //childVnode.render();
                 this.el.appendChild(this.buildElement(childVnode));
+                //调用指令的render方法
+                 
             });
         }
 
@@ -191,6 +194,7 @@ class Component{
 
         el.setAttribute('data-vnode-id', `${vNode.id}`);
         if(vNode.txt){
+            
             el.innerText = this.bindData(this.vnode);
         }
         return el;
@@ -198,6 +202,7 @@ class Component{
     
 
     update():void{
+        增加质量的update方法
         if(this.selector){
             document.querySelector(this.selector).innerHTML = "";
             document.querySelector(this.selector).appendChild(this.el);
