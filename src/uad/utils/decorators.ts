@@ -9,6 +9,9 @@ function component(options: any): Function {
     return function (target: any, name: string, descriptor: any) {
         //1,将options装饰为一个， 对组件镜像装饰处理。
         let component = CompoentFactory.decoratorComponent(target,options);
+
+        //2，初始化生命周期钩子函数
+        component.initLifeCycle();
         
         //2,注册完成，
         ComponentManager.getComponentManager().register(component);
@@ -25,8 +28,8 @@ function component(options: any): Function {
         //6,注册事件。
         component.initEvent(target);
         
-        //7,初始化生命周期
-        component.initLifeCycle();
+        //7,准备挂载
+        component.mounte();
 
         return target;
     }

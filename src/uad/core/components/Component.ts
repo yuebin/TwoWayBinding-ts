@@ -14,6 +14,8 @@ const IDENTITY_REG = /([a-z]|[A-Z]|[_$.])*/g;
  * 5，可以相互组合
  */
 class Component{
+
+    
     
     private template:string;
     private templateUrl:string;
@@ -189,8 +191,15 @@ class Component{
      * 初始化生命周期
      */
     initLifeCycle(): any {
+        
+    }
+
+    public mounte(): any {
         this.render();
     }
+
+
+
 
     getValueByObj(obj:any,key:string):any{
         if(obj && key){

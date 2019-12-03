@@ -49,7 +49,7 @@ class VNode{
         this.execPression(newValue);
         
         this.saveVNodeState();
-        this.parentComponent.initLifeCycle();
+        this.parentComponent.mounte();
         this._oldValue = this._value;
     }
 
