@@ -11,6 +11,8 @@ class ModelDirective implements IDirective{
         if (binding){
             this.vNode.value = binding.value;
         }
+
+        //
         this.vNode.addEventListener(EventType.INPUT,(event:any)=>{
             this.vNode.value = (event.target as any).value;
         });

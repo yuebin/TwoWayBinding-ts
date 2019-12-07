@@ -15,7 +15,8 @@ class DirectiveManager{
 
     static instance: DirectiveManager;
 
-    constructor(){
+    
+    private constructor(){
         if (DirectiveManager.instance){
             throw new Error("User DirectiveManager.getDirectiveManager");
         }

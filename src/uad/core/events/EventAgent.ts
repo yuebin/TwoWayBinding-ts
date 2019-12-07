@@ -3,7 +3,10 @@ import VNode from "../../vnode/VNode";
 
 enum EventType{
     CLICK = "click",
-    INPUT = "input"
+    INPUT = "input",
+    COMPOSITION_UPDATE = "compositionupdate",
+    COMPOSITION_END= "compositionend",
+    COMPOSITION_START = "compositionstart",
 }
 
 class EventAgent{
@@ -24,12 +27,32 @@ class EventAgent{
 
 
     public initEvent(): any {
-        document.addEventListener('input', (event: any) => {
-            this.dispatcher(EventType.INPUT, event);
+
+        let compositionstart:boolean = false;
+        
+        document.addEventListener(EventType.INPUT, (event: any) => {
+            if (!compositionstart){
+                this.dispatcher(EventType.INPUT, event);
+            }
         },true);
-        document.addEventListener('click', (event: any) => {
+
+        document.addEventListener(EventType.COMPOSITION_END, (event: any)=>{
+            if (compositionstart){
+                compositionstart = false;
+                this.dispatcher(EventType.INPUT, event);
+            }
+        });
+
+        document.addEventListener(EventType.COMPOSITION_START, (event: any) => {
+            if (!compositionstart){
+                compositionstart = true;
+            }
+        });
+
+        document.addEventListener(EventType.CLICK, (event: any) => {
             this.dispatcher(EventType.CLICK, event);
         });
+
     }
 
     public dispatcher(type:EventType,event:Event){
