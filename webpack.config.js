@@ -1,4 +1,5 @@
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry:{
@@ -14,22 +15,34 @@ module.exports = {
                 exclude: /node_modules/
             }
         ]
-        },
-        resolve: {
-            extensions: ['.tsx', '.ts', '.js']
-        },
-        output: {
-            filename: '[name].bundle.js',
-                path: path.resolve(__dirname, 'dist')
-        },
-        optimization:{
-                splitChunks:{
-                chunks:'async'
-                }
-        }, 
-        devServer: {
-            contentBase: path.join(__dirname, 'dist'),
-            compress: true,
-            port: 9000
-        }
+    },
+    resolve: {
+        extensions: ['.tsx', '.ts', '.js']
+    },
+    output: {
+        filename: '[name].bundle.js',
+            path: path.resolve(__dirname, 'dist')
+    },
+    optimization:{
+            splitChunks:{
+            chunks:'async'
+            }
+    }, 
+    plugins:[
+        new CopyWebpackPlugin([
+            {
+                from:__dirname + '/src/examples/',
+                to:__dirname + '/dist/examples/',
+                test:/([^/]+)\/(.+)\.(html|htm)$/,
+                force: true,
+                ignore: ['.tsx', '.ts', '.js']
+            }
+        ]),
+
+    ],
+    devServer: {
+        contentBase: path.join(__dirname, 'dist'),
+        compress: true,
+        port: 9000
+    }
   };

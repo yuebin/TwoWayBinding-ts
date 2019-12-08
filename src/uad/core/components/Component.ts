@@ -1,6 +1,7 @@
 import VNode from "../../vnode/VNode";
-import { Lexer, PROT_STATE_METADATA, Watcher, PROT_METHOD_METADATA, EventAgent, Message, PROT_WATCHER_METADATA, watch, DirectiveManager, Util, IDirective, EventType } from "../../index";
+import { Lexer, PROT_STATE_METADATA, Watcher, PROT_METHOD_METADATA, EventAgent, Message, PROT_WATCHER_METADATA, watch, DirectiveManager, Util, IDirective, EventType, TemplateUrl } from "../../index";
 import { MessageType } from "../../watcher/Message";
+import { sync } from "glob";
 
 
 const HTML_TAG_REG = /(<\/?\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[-.]|[0-9])*\"?)*>)|(<\w+(\s*@?([a-z]|[A-Z]|[0-9]|[-])*=\"?([a-z]|[A-Z]|[-.]|[0-9])*\"?)*\s*\/?>)/g;
@@ -52,9 +53,21 @@ class Component{
         this.module = Object.create(null);
     }
 
+    async getTemplateText(url:string,func:Function){
+        let result = await TemplateUrl.loadTemplate(url);
+        if(func){
+            func.apply(null,[result]);
+        }
+    }
+    
 
-    public parse(template?:string):void{
-        
+    public async parse(template?:string){
+        if(!this.template && this.templateUrl){
+            await this.getTemplateText(this.templateUrl,(text:string)=>{
+                this.template = text;
+            });
+        }
+
         if (this.template){
             let token:Array<any> = null;
             let index = 0;
@@ -189,6 +202,10 @@ class Component{
 
     /**
      * 初始化生命周期
+     * parse
+     * initComponent
+     * initEvent
+     * mounte
      */
     initLifeCycle(): any {
         

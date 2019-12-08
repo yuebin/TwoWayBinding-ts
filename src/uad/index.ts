@@ -12,6 +12,7 @@ import { Message, MessageType } from './watcher/Message';
 import { DirectiveManager } from './directives/DirectiveManager';
 import { ModelDirective } from './directives/ModelDirective';
 import { Util } from './utils/Util';
+import { TemplateUrl } from './template/TemplateUrl';
 
 
 export {
@@ -25,6 +26,7 @@ export {
     method,
     watch,
     directive,
+    TemplateUrl,
     PROT_STATE_METADATA,
     PROT_METHOD_METADATA,
     PROT_WATCHER_METADATA,

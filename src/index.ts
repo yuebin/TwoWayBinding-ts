@@ -4,20 +4,19 @@ import UAD from "./uad/core/UAD";
 
 @component({
     el:"#app",
-    template:`<div class="container" data-nid="12" @click="sayHello">
-        Hello world! {{state.date}}.
-        State data {{state.state.value}}
-        Input value : {{state.value}}
-        <br />
-        <input type="text" u-model="state.value" />
-    </div>`
+    // template:`<div class="container" data-nid="12" @click="sayHello">
+    //     Hello world! {{state.date}}.
+    //     State data {{state.state.value}}
+    //     Input value : {{state.value}}
+    //     <br />
+    //     <input type="text" u-model="state.value" />
+    // </div>`
+    templateUrl: "/examples/components/app/app.html"
 })
 class App{
     constructor(){
-        setTimeout(() => {
-            this.state.date = new Date();
-            this.state.state.value = new Date().getTime();
-        }, 5000);
+        this.state.date = new Date();
+        this.state.state.value = new Date().getTime();
     }
 
     @model()
